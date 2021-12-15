@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (C) 2021 Andrew Cerkin
 ;;
-;; Author: Andrew Cerkin <https://github.com/andrew>
+;; Author: Andrew Cerkin <https://github.com/patriot720>
 ;; Maintainer: Andrew Cerkin <cerkin-3@yandex.ru>
 ;; Created: December 15, 2021
 ;; Modified: December 15, 2021
