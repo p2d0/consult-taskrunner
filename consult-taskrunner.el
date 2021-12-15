@@ -64,8 +64,8 @@
 										:category 'vtaskrunner))
 					(path (gethash result consult-taskrunner-candidates-hash)))
 
-		(when (file-remote-p path)
-			(eshell-command (s-concat path " ls")))
+		(when (and path (file-remote-p path) )
+			(eshell-command (s-concat path " ls"))) ;; TODO map remote path to local
 
 		(taskrunner-run-task result path) ;; NOTE add .projectile file to folder to detect project root
 		(setq consult-taskrunner-last-run-command result)
