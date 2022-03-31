@@ -82,16 +82,20 @@
 	(interactive)
 	(consult-taskrunner--get-candidates-hash taskrunner-command-history-cache)
 	(let* ((commands (consult-taskrunner--get-commands consult-taskrunner-candidates-hash))
-					(result (consult--read commands
-										:category 'vtaskrunner)))
-		(puthash (intern (gethash result consult-taskrunner-candidates-hash))
-			(remove result (gethash (intern (gethash result consult-taskrunner-candidates-hash)) taskrunner-command-history-cache))
-			taskrunner-command-history-cache
-			)
-		)
+					(task (consult--read commands
+									:category 'vtaskrunner)))
+		(consult-taskrunner--remove-task task))
+	(setq consult-taskrunner-last-run-command ""))
+
+(defun consult-taskrunner--remove-task (task)
+	(let* ((task-dir (gethash task consult-taskrunner-candidates-hash)))
+		(when task-dir
+			(puthash (intern task-dir)
+				(remove task (gethash (intern task-dir) taskrunner-command-history-cache))
+				taskrunner-command-history-cache)))
 	(taskrunner-write-cache-file)
 	(consult-taskrunner--invalidate-cache)
-	(setq consult-taskrunner-last-run-command ""))
+	)
 
 (provide 'consult-taskrunner)
 ;;; consult-taskrunner.el ends here
