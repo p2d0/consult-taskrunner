@@ -41,13 +41,8 @@
 (defun consult-taskrunner--get-commands (items)
   (let ((kek (list)))
     (maphash (lambda (key val)
-							 (appendq! kek (list key))) items)
+	       (appendq! kek (list key))) items)
     kek))
-
-(defun consult-taskrunner--get-candidates-hash (items)
-  (maphash (lambda (key val)
-						 (--each val
-							 (puthash it  (symbol-name key) consult-taskrunner-candidates-hash))) items))
 
 (defun consult-taskrunner--invalidate-cache ()
   (clrhash consult-taskrunner-candidates-hash))
@@ -57,45 +52,62 @@
 (defun consult-taskrunner ()
   ""
   (interactive)
-  (taskrunner-read-cache-file)
-  (consult-taskrunner--get-candidates-hash taskrunner-command-history-cache)
+  (consult-taskrunner-read-cache-file)
   (let* ((commands (consult-taskrunner--get-commands consult-taskrunner-candidates-hash))
-					(result (consult--read commands
-										:category 'vtaskrunner))
-					(path (gethash result consult-taskrunner-candidates-hash)))
+	  (result (consult--read commands
+		    :category 'vtaskrunner))
+	  (path (gethash result consult-taskrunner-candidates-hash)))
 
-		(when (and path (file-remote-p path) )
-			(eshell-command (s-concat path " ls"))) ;; TODO map remote path to local
+    (when (and path (file-remote-p path) )
+      (eshell-command (s-concat path " ls"))) ;; TODO map remote path to local
 
-		(taskrunner-run-task result path) ;; NOTE add .projectile file to folder to detect project root
-		(setq consult-taskrunner-last-run-command result)
-		))
+    (taskrunner-run-task result path) ;; NOTE add .projectile file to folder to detect project root
+    (puthash result path consult-taskrunner-candidates-hash)
+    (consult-taskrunner-write-cache-file)
+    (setq consult-taskrunner-last-run-command result)))
 
 ;;;###autoload
 (defun consult-taskrunner-rerun-last-task ()
-	(interactive)
-	(consult-taskrunner--get-candidates-hash taskrunner-command-history-cache)
-	(taskrunner-run-task consult-taskrunner-last-run-command (gethash consult-taskrunner-last-run-command consult-taskrunner-candidates-hash)))
+  (interactive)
+  (taskrunner-run-task consult-taskrunner-last-run-command (gethash consult-taskrunner-last-run-command consult-taskrunner-candidates-hash)))
 
 ;;;###autoload
 (defun consult-taskrunner-remove-task ()
-	(interactive)
-	(consult-taskrunner--get-candidates-hash taskrunner-command-history-cache)
-	(let* ((commands (consult-taskrunner--get-commands consult-taskrunner-candidates-hash))
-					(task (consult--read commands
-									:category 'vtaskrunner)))
-		(consult-taskrunner--remove-task task))
-	(setq consult-taskrunner-last-run-command ""))
+  (interactive)
+  (let* ((commands (consult-taskrunner--get-commands consult-taskrunner-candidates-hash))
+	  (task (consult--read commands
+		  :category 'vtaskrunner)))
+    (consult-taskrunner--remove-task task))
+  (setq consult-taskrunner-last-run-command ""))
 
 (defun consult-taskrunner--remove-task (task)
-	(let* ((task-dir (gethash task consult-taskrunner-candidates-hash)))
-		(when task-dir
-			(puthash (intern task-dir)
-				(remove task (gethash (intern task-dir) taskrunner-command-history-cache))
-				taskrunner-command-history-cache)))
-	(taskrunner-write-cache-file)
-	(consult-taskrunner--invalidate-cache)
-	)
+  (remhash task consult-taskrunner-candidates-hash)
+  ;; (let* ((task-dir (gethash task consult-taskrunner-candidates-hash)))
+  ;;   (when task-dir
+  ;;     (puthash (intern task-dir)
+  ;; 	(remove task (gethash (intern task-dir) taskrunner-command-history-cache))
+  ;; 	taskrunner-command-history-cache)))
+  (consult-taskrunner-write-cache-file))
+
+(defun consult-taskrunner-write-cache-file ()
+  "Save all tasks in the cache to the cache file in Emacs user directory."
+  (let ((consult-taskrunner-cache-filepath (expand-file-name "consult-taskrunner-tasks.eld" user-emacs-directory)))
+    (write-region (format "%s%s\n" taskrunner--cache-file-header-warning
+                    (prin1-to-string consult-taskrunner-candidates-hash))
+      nil
+      consult-taskrunner-cache-filepath)))
+
+(defun consult-taskrunner-read-cache-file ()
+  "Read the task cache file and initialize the task caches with its contents."
+  (with-temp-buffer
+    (let ((taskrunner-cache-filepath (expand-file-name "consult-taskrunner-tasks.eld" user-emacs-directory))
+           (file-tasks))
+      (when (file-exists-p taskrunner-cache-filepath)
+        (with-temp-buffer
+          (insert-file-contents taskrunner-cache-filepath)
+          (setq file-tasks (car (read-from-string (buffer-string))))
+          ;; Load all the caches with the retrieved info
+          (setq consult-taskrunner-candidates-hash  file-tasks))))))
 
 (provide 'consult-taskrunner)
 ;;; consult-taskrunner.el ends here
