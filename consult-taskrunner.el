@@ -41,7 +41,7 @@
 (defun consult-taskrunner--get-commands (items)
   (let ((kek (list)))
     (maphash (lambda (key val)
-	       (appendq! kek (list key))) items)
+							 (appendq! kek (list key))) items)
     kek))
 
 (defun consult-taskrunner--invalidate-cache ()
@@ -54,9 +54,9 @@
   (interactive)
   (consult-taskrunner-read-cache-file)
   (let* ((commands (consult-taskrunner--get-commands consult-taskrunner-candidates-hash))
-	  (result (consult--read commands
-		    :category 'vtaskrunner))
-	  (path (gethash result consult-taskrunner-candidates-hash)))
+					(result (consult--read commands
+										:category 'vtaskrunner))
+					(path (gethash result consult-taskrunner-candidates-hash (projectile-project-root))))
 
     (when (and path (file-remote-p path) )
       (eshell-command (s-concat path " ls"))) ;; TODO map remote path to local
@@ -75,8 +75,8 @@
 (defun consult-taskrunner-remove-task ()
   (interactive)
   (let* ((commands (consult-taskrunner--get-commands consult-taskrunner-candidates-hash))
-	  (task (consult--read commands
-		  :category 'vtaskrunner)))
+					(task (consult--read commands
+									:category 'vtaskrunner)))
     (consult-taskrunner--remove-task task))
   (setq consult-taskrunner-last-run-command ""))
 
